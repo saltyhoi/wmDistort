@@ -15,7 +15,7 @@ if p.do_et == 1
 end
 
 p.rng_seed = cputime*1000;
-rng(p.rng_seed);
+rng(p.rng_seed);0
 
 % ------ size of relevant stim features, etc ------ %
 p.wm_ecc = 8;     % deg [in behavioral room, max ecc of circle 15 deg]
@@ -73,16 +73,17 @@ p.conditions = p.conditions(p.rnd_idx,:);
 
 
 % ------ timing of trial events --------- %
-p.black_dur = 1.5;
-p.blank_dur = 3;
+p.black_dur = 0;
+p.blank_dur = 2;
 p.targ_dur = 0.5;
-p.delay_dur = 3.5;
+p.delay_dur = 2.5;
 p.cue_dur = 0.8; % a bit longer than usual
 p.feedback_dur = 0.8; 
 p.iti_range = [2 4]; % randomly choose between those
 
 p.itis = linspace(p.iti_range(1),p.iti_range(2),p.ntrials);
 p.itis = p.itis(randperm(p.ntrials));
+% p.itis = p.itis(randperm(32));
 
 
 
@@ -267,7 +268,7 @@ p.start_expt = GetSecs;
 
 % blank screen
 Screen('FillRect',w,[0 0 0]);
-draw_aperture();
+% draw_aperture();
 Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
 Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
 %Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
@@ -355,9 +356,8 @@ for tt = 1:p.ntrials
         Eyelink('command', 'record_status_message "TRIAL %d of %d"', tt, p.ntrials);
         
     end
-    
-    while GetSecs < trial_start + p.black_dur
 
+    while GetSecs < trial_start + p.black_dur
         Screen('FillRect',w,[0 0 0]);
         Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
         Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
@@ -605,20 +605,20 @@ for tt = 1:p.ntrials
     while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur + p.itis(tt)
         
         % aperture
-        Screen('FillRect',w,[0 0 0]);
+        % Screen('FillRect',w,[0 0 0]);
         %draw_aperture();
-        switch current_shape
-            case {'circle'}
-                Screen('FillOval', w, p.bg_color, p.aperture_circle);
-            case 'wide_rect'
-                Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
-            case 'tall_rect'
-                Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
-            case 'square'
-                Screen('FillRect', w, p.bg_color, p.aperture_square);
-            otherwise
-                error('Unknown shape: %s', shape);
-        end
+        % switch current_shape
+        %     case {'circle'}
+        %         Screen('FillOval', w, p.bg_color, p.aperture_circle);
+        %     case 'wide_rect'
+        %         Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
+        %     case 'tall_rect'
+        %         Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
+        %     case 'square'
+        %         Screen('FillRect', w, p.bg_color, p.aperture_square);
+        %     otherwise
+        %         error('Unknown shape: %s', shape);
+        % end
         
         Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
         Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
