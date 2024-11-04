@@ -284,7 +284,11 @@ end
 WaitSecs(1.5); % wait a bit before first trial
 
 % ------ generate file based on run number ------- %
-filename = '../../data/wmDistort_data/temp_randomized_conditions.mat';  % Define filename
+if mod(p.run, 2) == 1
+    filename = sprintf('../../data/wmDistort_data/%s_run%d_randomized_conditions.mat', p.subj, p.run);  % Define filename
+else
+    filename = sprintf('../../data/wmDistort_data/%s_run%d_randomized_conditions.mat', p.subj, p.run-1);
+end
 
 if mod(p.run, 2) == 1
     % If run number is odd, generate a new .mat file with 1 to 32 trials
