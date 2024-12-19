@@ -1,12 +1,46 @@
-function wmDistort_pilot1(subj,run)
+function wmDistort_pilot1()
 Screen('Preference', 'SkipSyncTests', 1);
+
+% Create input dialog for subject number, run number, and eye tracker condition
+prompt = {'Enter Subject Number (e.g., subj001):', 'Enter Run Number (e.g., 1):', 'Eye Tracker Condition (0 = Off, 1 = On):'};
+dlg_title = 'Subject, Run, and Eye Tracker Input';
+num_lines = 1; 
+default_input = {'subj001', '1', '0'};  % Default values for subj, run, and eye tracker condition
+
+% Get user input via dialog box
+user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
+
+% Extract the inputs from the user input dialog
+subj = user_input{1};  % Subject number
+run = str2double(user_input{2});  % Run number  , convert to double
+et = str2double(user_input{3});  % Eye tracker condition (0 or 1)
+
+% Check if eye tracker condition is valid
+if et ~= 0 && et ~= 1
+    error('Invalid input for Eye Tracker condition. Must be 0 or 1.');
+end
+
+% Screen('Preference', 'SkipSyncTests', 1);
 
 try
 p.expt_name = 'wmDistort_pilot1';
-
-p.do_et = 0;
 p.subj = subj;
-p.run = run;
+p.run = run; 
+p.do_et = 0;
+ 
+% Display the experiment settings for confirmation
+disp(['Running experiment for Subject: ', p.subj, ' Run: ', num2str(p.run)]);
+disp(['Eye Tracker Condition: ', num2str(p.do_et)]);  % Shows 0 or 1
+    
+      
+    
+
+% try
+% p.expt_name = 'wmDistort_pilot1';
+% 
+% p.do_et = 0;
+% p.subj = subj;
+% p.run = run;
 
 % data directory 2 above the current directory
 p.filename = sprintf('../../data/wmDistort_data/%s_r%02.f_%s_%s.mat',p.subj,p.run,p.expt_name,datestr(now,30));
@@ -15,7 +49,7 @@ if p.do_et == 1
 end
 
 p.rng_seed = cputime*1000;
-rng(p.rng_seed);0
+rng(p.rng_seed);
 
 % ------ size of relevant stim features, etc ------ %
 p.wm_ecc = 8;     % deg [in behavioral room, max ecc of circle 15 deg]
@@ -82,7 +116,6 @@ p.iti_range = [2 4]; % randomly choose between those
 
 p.itis = linspace(p.iti_range(1),p.iti_range(2),p.ntrials);
 p.itis = p.itis(randperm(p.ntrials));
-% p.itis = p.itis(randperm(32));
 
 
 
@@ -96,6 +129,7 @@ p.targ_colors{1} = nan(p.ntrials,3);
 p.targ_colors{2} = nan(p.ntrials,3);
 
 p.targ_angs = nan(p.ntrials,2);
+p.targ_apertures = nan(p.ntrials,2);
 
 
 % ------- Screen setup, optics --------- %
@@ -199,13 +233,10 @@ if p.do_et == 1
 
 end
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHAPES and STARTING ANGLES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 shapes = {'circle', 'wide_rect', 'tall_rect', 'square'};
 % Repeat the shape list enough times to cover all trials
-shape_list = repmat(shapes, 1, p.ntrials / length(shapes));
-% Shuffle the shape order for randomness
 
 % Setting the number of conditions and degrees of increment and the
 % starting wm
@@ -243,12 +274,12 @@ Screen('FillRect',w,[0 0 0]);
 txt = 'Remember dot position precisely';
 Screen('TextSize', w, 30);
 DrawFormattedText(w,txt,'center',p.center(2)-4*p.ppd,p.fix_color);
-%Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
-%Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
-% Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2);
-% Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2);
-% Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2);
-%Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
+% Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
+Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
+Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2);
+Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2);
+Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2);
+Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
 Screen('Flip',w);
 
 
@@ -285,6 +316,26 @@ end
 WaitSecs(1.5); % wait a bit before first trial
 
 % ------ generate file based on run number ------- %
+% filename = '../../data/wmDistort_data/temp_randomized_conditions.mat';  % Define filename
+% 
+% if mod(p.run, 2) == 1
+%     % If run number is odd, generate a new .mat file with 1 to 32 trials
+%     p.ntrials = 32;
+%     temp_randomized_conditions = conditions(randperm(size(conditions, 1)), :);
+%     save(filename, 'temp_randomized_conditions');
+%     randomized_conditions = temp_randomized_conditions(1:32, :);  % Use trials 1-32
+% else
+%     % If run number is even, load the file and use trials 33 to 64
+%     if isfile(filename)
+%         load(filename, 'temp_randomized_conditions');
+%         p.ntrials = 32;
+%         randomized_conditions = temp_randomized_conditions(33:64, :);  % Use trials 33-64
+%     else
+%         error('No existing .mat file found for this even run.');
+%     end
+% end
+
+% ------ generate file based on run number ------- %
 if mod(p.run, 2) == 1
     filename = sprintf('../../data/wmDistort_data/%s_run%d_randomized_conditions.mat', p.subj, p.run);  % Define filename
 else
@@ -309,19 +360,19 @@ else
 end
 
 for tt = 1:p.ntrials
-    disp("-----------------------------------------------------------")
-    disp(tt)
-    % disp(randomized_shapes(tt))
-    % current_shape = [randomized_shapes{tt}];
+    %disp("-----------------------------------------------------------")
+    %disp(tt)
     current_shape = randomized_conditions{tt, 1}; % Get the current shape
     current_degree = randomized_conditions{tt, 2}; % Get the current degree
-    disp(['Shape: ', current_shape, ', Degree: ', num2str(current_degree)]);
+    %disp(['Shape: ', current_shape, ', Degree: ', num2str(current_degree)]);
     
+
     % this trial's position(s)
     this_ang = nan(1,2);
     this_ang(1) = current_degree;
-    % this_ang(1) = 360*rand(1);
-    disp(this_ang)
+    this_shape = strings(1); % Create a 1x1 string array
+    this_shape(1) = string(current_shape); % Convert character array to string
+    %disp(this_ang)
 
     
     p.targ_coords{1}(tt,:) = p.wm_ecc * [cosd(this_ang(1)) sind(this_ang(1))];
@@ -332,7 +383,7 @@ for tt = 1:p.ntrials
     end
     
     p.targ_angs(tt,:) = this_ang; % save these for convenience
-    
+    p.targ_apertures(tt,:) = this_shape; % save this aperture shape
     
     % this trial's colors
     tmp_color_idx = randperm(size(p.wm_colors,1));
@@ -344,33 +395,28 @@ for tt = 1:p.ntrials
     end
     
     
-    
-    % targets (XDAT 1) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % trial starts/aperture display (XDAT 1) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     trial_start = GetSecs;
-    
-    
     if p.do_et == 1
-        %Eyelink('Message','TarX %s', num2str(p.targ_coords{1}(tt,1)));
-        %Eyelink('Message','TarY %s', num2str(p.targ_coords{1}(tt,2)));
         Eyelink('Message','TarX %s', num2str(0));
         Eyelink('Message','TarY %s', num2str(0));
-        
-        
         Eyelink('Message','xDAT %i',1);
-        
         Eyelink('command', 'record_status_message "TRIAL %d of %d"', tt, p.ntrials);
-        
-    end
-
-    while GetSecs < trial_start + p.black_dur
-        Screen('FillRect',w,[0 0 0]);
-        Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
-        Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
-        Screen('Flip',w);
     end
     
+    Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
+    Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
+    Screen('Flip',w);
 
-    while GetSecs < trial_start + p.black_dur + p.blank_dur
+%     while GetSecs < trial_start
+%         Screen('FillRect',w,[0 0 0]);
+%         Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
+%         Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
+%         Screen('Flip',w);
+%     end
+    
+
+    while GetSecs < trial_start + p.aperture_dur
 
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -392,7 +438,14 @@ for tt = 1:p.ntrials
         Screen('Flip',w);
     end
 
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur
+    % target  (XDAT 2) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    if p.do_et == 1
+        Eyelink('Message','xDAT %i',2);
+    end
+
+
+    while GetSecs < trial_start + p.aperture_dur + p.targ_dur
         
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -429,23 +482,25 @@ for tt = 1:p.ntrials
         [resp] = checkForResp([], p.esc_key); % TODO: maybe turn on/off gaze indicator?
         if resp == -1
             Screen('CloseAll'); ShowCursor;
-            Eyelink('StopRecording');
-            Eyelink('ShutDown');
+            if p.do_et == 1
+                Eyelink('StopRecording');
+                Eyelink('ShutDown');
+            end
             save(p.filename,'p');
             return;
         end
         
     end
     
-    % delay (XDAT 2) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % delay (XDAT 3) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     
     if p.do_et == 1
-        Eyelink('Message','xDAT %i',2);    
+        Eyelink('Message','xDAT %i',3);    
     end
     
     
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur
+    while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur
         % aperture
         Screen('FillRect',w,[0 0 0]);
         %draw_aperture();
@@ -476,7 +531,7 @@ for tt = 1:p.ntrials
         % check for esc.... 
         [resp] = checkForResp([], p.esc_key); % TODO: maybe turn on/off gaze indicator?
         if resp == -1
-            Screen('CloseAll'); ShowCursor;
+            Screen('CloseAll'); ShowCursor; 
             Eyelink('StopRecording');
             Eyelink('ShutDown');
             save(p.filename,'p');
@@ -485,12 +540,13 @@ for tt = 1:p.ntrials
         
     end
     
-    % go cue (XDAT 3) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % go cue (XDAT 4) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   
     if p.do_et == 1
-        Eyelink('Message','xDAT %i',3);
+        Eyelink('Message','xDAT %i',4);
     end
     
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur + p.cue_dur
+    while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur
         
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -530,17 +586,17 @@ for tt = 1:p.ntrials
         end
     end
     
-    % feedback (XDAT 4, tarx, tary) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % feedback (XDAT 5, tarx, tary) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     if p.do_et == 1
         Eyelink('Message','TarX %s', num2str(p.targ_coords{1}(tt,1)));
         Eyelink('Message','TarY %s', num2str(p.targ_coords{1}(tt,2)));
         % NOTE: incorrect on 1/3 trials
-        Eyelink('Message','xDAT %i',4);
+        Eyelink('Message','xDAT %i',5);
         
     end
     
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur
+    while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur
         
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -599,32 +655,15 @@ for tt = 1:p.ntrials
  
     end
     
-    % ITI (XDAT 5) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % ITI (XDAT 6) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if p.do_et == 1
         Eyelink('Message','TarX %s', num2str(0));
         Eyelink('Message','TarY %s', num2str(0));
         
-        Eyelink('Message','xDAT %i',5);
+        Eyelink('Message','xDAT %i',6);
     end
 
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur + p.itis(tt)
-        
-        % aperture
-        % Screen('FillRect',w,[0 0 0]);
-        %draw_aperture();
-        % switch current_shape
-        %     case {'circle'}
-        %         Screen('FillOval', w, p.bg_color, p.aperture_circle);
-        %     case 'wide_rect'
-        %         Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
-        %     case 'tall_rect'
-        %         Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
-        %     case 'square'
-        %         Screen('FillRect', w, p.bg_color, p.aperture_square);
-        %     otherwise
-        %         error('Unknown shape: %s', shape);
-        % end
-        
+    while GetSecs < trial_start + + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur + p.itis(tt)
         Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
         Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
         
@@ -686,12 +725,18 @@ end
 
 Screen('CloseAll');
 ShowCursor;
-catch
-    Screen('CloseAll');
-    ShowCursor;
-    le = lasterror;
-    rethrow(le);
+% catch
+%     Screen('CloseAll');
+%     ShowCursor;
+%     le = lasterror; 
+%     rethrow(le); 
+    
+catch ME
+    sca;  
+    ShowCursor;  
+    rethrow(ME); 
 end
+
 
 
 return

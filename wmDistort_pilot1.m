@@ -1,12 +1,42 @@
-function wmDistort_pilot1(subj,run)
+function wmDistort_pilot1()
 Screen('Preference', 'SkipSyncTests', 1);
+
+% Create input dialog for subject number, run number, and eye tracker condition
+prompt = {'Enter Subject Number (e.g., subj001):', 'Enter Run Number (e.g., 1):', 'Eye Tracker Condition (0 = Off, 1 = On):'};
+dlg_title = 'Subject, Run, and Eye Tracker Input';
+num_lines = 1; 
+default_input = {'subj001', '1', '0'};  % Default values for subj, run, and eye tracker condition
+
+% Get user input via dialog box
+user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
+
+% Extract the inputs from the user input dialog
+subj = user_input{1};  % Subject number
+run = str2double(user_input{2});  % Run number  , convert to double
+et = str2double(user_input{3});  % Eye tracker condition (0 or 1)
+
+% Check if eye tracker condition is valid
+if et ~= 0 && et ~= 1
+    error('Invalid input for Eye Tracker condition. Must be 0 or 1.');
+end
 
 try
 p.expt_name = 'wmDistort_pilot1';
-
-p.do_et = 0;
 p.subj = subj;
-p.run = run;
+p.run = run; 
+p.do_et = et;
+ 
+% Display the experiment settings for confirmation
+disp(['Running experiment for  Subject: ', p.subj, ', Run: ', num2str(p.run)]);
+disp(['Eye Tracker Condition: ', num2str(p.do_et)]);  % Shows 0 or 1
+    
+
+% try
+% p.expt_name = 'wmDistort_pilot1';
+% 
+% p.do_et = 0;
+% p.subj = subj;
+% p.run = run;
 
 % data directory 2 above the current directory
 p.filename = sprintf('../../data/wmDistort_data/%s_r%02.f_%s_%s.mat',p.subj,p.run,p.expt_name,datestr(now,30));
@@ -256,7 +286,9 @@ while resp == 0
     [resp, ~] = checkForResp(p.space, p.esc_key);
     if resp == -1
         Screen('CloseAll'); ShowCursor;
-        Eyelink('ShutDown'); 
+        if p.do_et == 1
+            Eyelink('ShutDown'); 
+        end
         return;
     end
 end
@@ -448,8 +480,10 @@ for tt = 1:p.ntrials
         [resp] = checkForResp([], p.esc_key); % TODO: maybe turn on/off gaze indicator?
         if resp == -1
             Screen('CloseAll'); ShowCursor;
-            Eyelink('StopRecording');
-            Eyelink('ShutDown');
+            if p.do_et == 1
+                Eyelink('StopRecording');
+                Eyelink('ShutDown');
+            end
             save(p.filename,'p');
             return;
         end
@@ -495,9 +529,11 @@ for tt = 1:p.ntrials
         % check for esc.... 
         [resp] = checkForResp([], p.esc_key); % TODO: maybe turn on/off gaze indicator?
         if resp == -1
-            Screen('CloseAll'); ShowCursor;
-            Eyelink('StopRecording');
-            Eyelink('ShutDown');
+            Screen('CloseAll'); ShowCursor;  
+            if p.do_et == 1
+                Eyelink('StopRecording');
+                Eyelink('ShutDown');
+            end
             save(p.filename,'p');
             return;
         end
@@ -543,8 +579,10 @@ for tt = 1:p.ntrials
         [resp] = checkForResp([], p.esc_key); % TODO: maybe turn on/off gaze indicator?
         if resp == -1
             Screen('CloseAll'); ShowCursor;
-            Eyelink('StopRecording');
-            Eyelink('ShutDown');
+            if p.do_et == 1
+                Eyelink('StopRecording');
+                Eyelink('ShutDown');
+            end
             save(p.filename,'p');
             return;
         end
@@ -611,8 +649,10 @@ for tt = 1:p.ntrials
         [resp] = checkForResp([], p.esc_key); % TODO: maybe turn on/off gaze indicator?
         if resp == -1
             Screen('CloseAll'); ShowCursor;
-            Eyelink('StopRecording');
-            Eyelink('ShutDown');
+            if p.do_et == 1
+                Eyelink('StopRecording');
+                Eyelink('ShutDown');
+            end
             save(p.filename,'p');
             return;
         end
@@ -639,9 +679,10 @@ for tt = 1:p.ntrials
         [resp] = checkForResp([], p.esc_key); % TODO: maybe turn on/off gaze indicator?
         if resp == -1
             Screen('CloseAll'); ShowCursor;
-            Eyelink('StopRecording');
-            Eyelink('ShutDown');
-
+            if p.do_et == 1
+                Eyelink('StopRecording');
+                Eyelink('ShutDown');
+            end
             save(p.filename,'p');
             return;
         end
@@ -689,12 +730,18 @@ end
 
 Screen('CloseAll');
 ShowCursor;
-catch
-    Screen('CloseAll');
-    ShowCursor;
-    le = lasterror;
-    rethrow(le);
+% catch
+%     Screen('CloseAll');
+%     ShowCursor;
+%     le = lasterror; 
+%     rethrow(le); 
+    
+catch ME
+    sca;  
+    ShowCursor;  
+    rethrow(ME); 
 end
+
 
 
 return
