@@ -15,7 +15,7 @@ if p.do_et == 1
 end
 
 p.rng_seed = cputime*1000;
-rng(p.rng_seed);0
+rng(p.rng_seed);
 
 % ------ size of relevant stim features, etc ------ %
 p.wm_ecc = 8;     % deg [in behavioral room, max ecc of circle 15 deg]
@@ -73,8 +73,7 @@ p.conditions = p.conditions(p.rnd_idx,:);
 
 
 % ------ timing of trial events --------- %
-p.black_dur = 0;
-p.blank_dur = 2;
+p.aperture_dur = 2;
 p.targ_dur = 0.5;
 p.delay_dur = 2.5;
 p.cue_dur = 0.8; % a bit longer than usual
@@ -83,7 +82,6 @@ p.iti_range = [2 4]; % randomly choose between those
 
 p.itis = linspace(p.iti_range(1),p.iti_range(2),p.ntrials);
 p.itis = p.itis(randperm(p.ntrials));
-% p.itis = p.itis(randperm(32));
 
 
 
@@ -97,6 +95,7 @@ p.targ_colors{1} = nan(p.ntrials,3);
 p.targ_colors{2} = nan(p.ntrials,3);
 
 p.targ_angs = nan(p.ntrials,2);
+p.targ_apertures = nan(p.ntrials,2);
 
 
 % ------- Screen setup, optics --------- %
@@ -126,7 +125,7 @@ p.fix_rect_in   = CenterRectOnPoint([0 0 2 2] * p.ppd  * p.fix_size_in, p.center
 p.screen_width = p.scr_rect(3); % Screen width in pixels
 p.screen_height = p.scr_rect(4); % Screen height in pixels
 p.longest_side = p.screen_height; % The height of the monitor as the longest side
-p.diameter_length = (p.screen_height + p.screen_height*0.618)/2
+p.diameter_length = (p.screen_height + p.screen_height*0.618)/2;
 
 % Set aperture size based on the screen height
 aperture_diameter = p.diameter_length; % For the circle
@@ -200,17 +199,16 @@ if p.do_et == 1
 
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHAPES and STARTING ANGLES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 shapes = {'circle', 'wide_rect', 'tall_rect', 'square'};
 % Repeat the shape list enough times to cover all trials
-shape_list = repmat(shapes, 1, p.ntrials / length(shapes));
-% Shuffle the shape order for randomness
-randomized_shapes = shape_list(randperm(p.ntrials));
 
 % Setting the number of conditions and degrees of increment and the
 % starting wm
 p.num_shapes = length(shapes);
-p.num_conditions = p.ntrials/4;
-p.incre = 22.5;
+p.num_conditions = p.ntrials/p.num_shapes;
+p.incre = 360/16; %the angle should be 22.5 degrees here
 p.start_deg = 11.25;
 
 % Generate degrees
@@ -242,12 +240,12 @@ Screen('FillRect',w,[0 0 0]);
 txt = 'Remember dot position precisely';
 Screen('TextSize', w, 30);
 DrawFormattedText(w,txt,'center',p.center(2)-4*p.ppd,p.fix_color);
-%Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
-%Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
-% Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2);
-% Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2);
-% Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2);
-%Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
+% Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
+Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
+Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2);
+Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2);
+Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2);
+Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
 Screen('Flip',w);
 
 
@@ -284,6 +282,26 @@ end
 WaitSecs(1.5); % wait a bit before first trial
 
 % ------ generate file based on run number ------- %
+% filename = '../../data/wmDistort_data/temp_randomized_conditions.mat';  % Define filename
+% 
+% if mod(p.run, 2) == 1
+%     % If run number is odd, generate a new .mat file with 1 to 32 trials
+%     p.ntrials = 32;
+%     temp_randomized_conditions = conditions(randperm(size(conditions, 1)), :);
+%     save(filename, 'temp_randomized_conditions');
+%     randomized_conditions = temp_randomized_conditions(1:32, :);  % Use trials 1-32
+% else
+%     % If run number is even, load the file and use trials 33 to 64
+%     if isfile(filename)
+%         load(filename, 'temp_randomized_conditions');
+%         p.ntrials = 32;
+%         randomized_conditions = temp_randomized_conditions(33:64, :);  % Use trials 33-64
+%     else
+%         error('No existing .mat file found for this even run.');
+%     end
+% end
+
+% ------ generate file based on run number ------- %
 if mod(p.run, 2) == 1
     filename = sprintf('../../data/wmDistort_data/%s_run%d_randomized_conditions.mat', p.subj, p.run);  % Define filename
 else
@@ -308,19 +326,19 @@ else
 end
 
 for tt = 1:p.ntrials
-    disp("-----------------------------------------------------------")
-    disp(tt)
-    % disp(randomized_shapes(tt))
-    % current_shape = [randomized_shapes{tt}];
+    %disp("-----------------------------------------------------------")
+    %disp(tt)
     current_shape = randomized_conditions{tt, 1}; % Get the current shape
     current_degree = randomized_conditions{tt, 2}; % Get the current degree
-    disp(['Shape: ', current_shape, ', Degree: ', num2str(current_degree)]);
+    %disp(['Shape: ', current_shape, ', Degree: ', num2str(current_degree)]);
     
+
     % this trial's position(s)
     this_ang = nan(1,2);
     this_ang(1) = current_degree;
-    % this_ang(1) = 360*rand(1);
-    disp(this_ang)
+    this_shape = strings(1); % Create a 1x1 string array
+    this_shape(1) = string(current_shape); % Convert character array to string
+    %disp(this_ang)
 
     
     p.targ_coords{1}(tt,:) = p.wm_ecc * [cosd(this_ang(1)) sind(this_ang(1))];
@@ -331,7 +349,7 @@ for tt = 1:p.ntrials
     end
     
     p.targ_angs(tt,:) = this_ang; % save these for convenience
-    
+    p.targ_apertures(tt,:) = this_shape; % save this aperture shape
     
     % this trial's colors
     tmp_color_idx = randperm(size(p.wm_colors,1));
@@ -343,33 +361,28 @@ for tt = 1:p.ntrials
     end
     
     
-    
-    % targets (XDAT 1) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % trial starts/aperture display (XDAT 1) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     trial_start = GetSecs;
-    
-    
     if p.do_et == 1
-        %Eyelink('Message','TarX %s', num2str(p.targ_coords{1}(tt,1)));
-        %Eyelink('Message','TarY %s', num2str(p.targ_coords{1}(tt,2)));
         Eyelink('Message','TarX %s', num2str(0));
         Eyelink('Message','TarY %s', num2str(0));
-        
-        
         Eyelink('Message','xDAT %i',1);
-        
         Eyelink('command', 'record_status_message "TRIAL %d of %d"', tt, p.ntrials);
-        
-    end
-
-    while GetSecs < trial_start + p.black_dur
-        Screen('FillRect',w,[0 0 0]);
-        Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
-        Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
-        Screen('Flip',w);
     end
     
+    Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
+    Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
+    Screen('Flip',w);
 
-    while GetSecs < trial_start + p.black_dur + p.blank_dur
+%     while GetSecs < trial_start
+%         Screen('FillRect',w,[0 0 0]);
+%         Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
+%         Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
+%         Screen('Flip',w);
+%     end
+    
+
+    while GetSecs < trial_start + p.aperture_dur
 
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -391,7 +404,14 @@ for tt = 1:p.ntrials
         Screen('Flip',w);
     end
 
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur
+    % target  (XDAT 2) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    if p.do_et == 1
+        Eyelink('Message','xDAT %i',2);
+    end
+
+
+    while GetSecs < trial_start + p.aperture_dur + p.targ_dur
         
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -436,15 +456,15 @@ for tt = 1:p.ntrials
         
     end
     
-    % delay (XDAT 2) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % delay (XDAT 3) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     
     if p.do_et == 1
-        Eyelink('Message','xDAT %i',2);    
+        Eyelink('Message','xDAT %i',3);    
     end
     
     
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur
+    while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur
         % aperture
         Screen('FillRect',w,[0 0 0]);
         %draw_aperture();
@@ -484,12 +504,13 @@ for tt = 1:p.ntrials
         
     end
     
-    % go cue (XDAT 3) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % go cue (XDAT 4) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   
     if p.do_et == 1
-        Eyelink('Message','xDAT %i',3);
+        Eyelink('Message','xDAT %i',4);
     end
     
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur + p.cue_dur
+    while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur
         
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -529,17 +550,17 @@ for tt = 1:p.ntrials
         end
     end
     
-    % feedback (XDAT 4, tarx, tary) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % feedback (XDAT 5, tarx, tary) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     if p.do_et == 1
         Eyelink('Message','TarX %s', num2str(p.targ_coords{1}(tt,1)));
         Eyelink('Message','TarY %s', num2str(p.targ_coords{1}(tt,2)));
         % NOTE: incorrect on 1/3 trials
-        Eyelink('Message','xDAT %i',4);
+        Eyelink('Message','xDAT %i',5);
         
     end
     
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur
+    while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur
         
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -598,32 +619,15 @@ for tt = 1:p.ntrials
  
     end
     
-    % ITI (XDAT 5) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % ITI (XDAT 6) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if p.do_et == 1
         Eyelink('Message','TarX %s', num2str(0));
         Eyelink('Message','TarY %s', num2str(0));
         
-        Eyelink('Message','xDAT %i',5);
+        Eyelink('Message','xDAT %i',6);
     end
 
-    while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur + p.itis(tt)
-        
-        % aperture
-        % Screen('FillRect',w,[0 0 0]);
-        %draw_aperture();
-        % switch current_shape
-        %     case {'circle'}
-        %         Screen('FillOval', w, p.bg_color, p.aperture_circle);
-        %     case 'wide_rect'
-        %         Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
-        %     case 'tall_rect'
-        %         Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
-        %     case 'square'
-        %         Screen('FillRect', w, p.bg_color, p.aperture_square);
-        %     otherwise
-        %         error('Unknown shape: %s', shape);
-        % end
-        
+    while GetSecs < trial_start + + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur + p.itis(tt)
         Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
         Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
         

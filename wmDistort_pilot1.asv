@@ -73,8 +73,7 @@ p.conditions = p.conditions(p.rnd_idx,:);
 
 
 % ------ timing of trial events --------- %
-p.black_dur = 0;
-p.blank_dur = 2;
+p.aperture_dur = 2;
 p.targ_dur = 0.5;
 p.delay_dur = 2.5;
 p.cue_dur = 0.8; % a bit longer than usual
@@ -126,7 +125,7 @@ p.fix_rect_in   = CenterRectOnPoint([0 0 2 2] * p.ppd  * p.fix_size_in, p.center
 p.screen_width = p.scr_rect(3); % Screen width in pixels
 p.screen_height = p.scr_rect(4); % Screen height in pixels
 p.longest_side = p.screen_height; % The height of the monitor as the longest side
-p.diameter_length = (p.screen_height + p.screen_height*0.618)/2
+p.diameter_length = (p.screen_height + p.screen_height*0.618)/2;
 
 % Set aperture size based on the screen height
 aperture_diameter = p.diameter_length; % For the circle
@@ -200,17 +199,19 @@ if p.do_et == 1
 
 end
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHAPES and STARTING ANGLES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 shapes = {'circle', 'wide_rect', 'tall_rect', 'square'};
 % Repeat the shape list enough times to cover all trials
 shape_list = repmat(shapes, 1, p.ntrials / length(shapes));
 % Shuffle the shape order for randomness
-randomized_shapes = shape_list(randperm(p.ntrials));
 
 % Setting the number of conditions and degrees of increment and the
 % starting wm
 p.num_shapes = length(shapes);
-p.num_conditions = p.ntrials/4;
-p.incre = 22.5;
+p.num_conditions = p.ntrials/p.num_shapes;
+p.incre = 360/16; %the angle should be 22.5 degrees here
 p.start_deg = 11.25;
 
 % Generate degrees
@@ -268,7 +269,7 @@ p.start_expt = GetSecs;
 
 % blank screen
 Screen('FillRect',w,[0 0 0]);
-draw_aperture();
+% draw_aperture();
 Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
 Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
 %Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
@@ -284,7 +285,11 @@ end
 WaitSecs(1.5); % wait a bit before first trial
 
 % ------ generate file based on run number ------- %
-filename = '../../data/wmDistort_data/temp_randomized_conditions.mat';  % Define filename
+if mod(p.run, 2) == 1
+    filename = sprintf('../../data/wmDistort_data/%s_run%d_randomized_conditions.mat', p.subj, p.run);  % Define filename
+else
+    filename = sprintf('../../data/wmDistort_data/%s_run%d_randomized_conditions.mat', p.subj, p.run-1);
+end
 
 if mod(p.run, 2) == 1
     % If run number is odd, generate a new .mat file with 1 to 32 trials
@@ -356,9 +361,8 @@ for tt = 1:p.ntrials
         Eyelink('command', 'record_status_message "TRIAL %d of %d"', tt, p.ntrials);
         
     end
-    
-    while GetSecs < trial_start + p.black_dur
 
+    while GetSecs < trial_start + p.black_dur
         Screen('FillRect',w,[0 0 0]);
         Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
         Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
@@ -606,20 +610,20 @@ for tt = 1:p.ntrials
     while GetSecs < trial_start + p.black_dur + p.blank_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur + p.itis(tt)
         
         % aperture
-        Screen('FillRect',w,[0 0 0]);
+        % Screen('FillRect',w,[0 0 0]);
         %draw_aperture();
-        switch current_shape
-            case {'circle'}
-                Screen('FillOval', w, p.bg_color, p.aperture_circle);
-            case 'wide_rect'
-                Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
-            case 'tall_rect'
-                Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
-            case 'square'
-                Screen('FillRect', w, p.bg_color, p.aperture_square);
-            otherwise
-                error('Unknown shape: %s', shape);
-        end
+        % switch current_shape
+        %     case {'circle'}
+        %         Screen('FillOval', w, p.bg_color, p.aperture_circle);
+        %     case 'wide_rect'
+        %         Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
+        %     case 'tall_rect'
+        %         Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
+        %     case 'square'
+        %         Screen('FillRect', w, p.bg_color, p.aperture_square);
+        %     otherwise
+        %         error('Unknown shape: %s', shape);
+        % end
         
         Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
         Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
