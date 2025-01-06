@@ -123,9 +123,9 @@ p.targ_coords{2} = nan(p.ntrials,2);
 p.targ_colors = cell(2,1);
 p.targ_colors{1} = nan(p.ntrials,3);
 p.targ_colors{2} = nan(p.ntrials,3);
-
-p.targ_angs = nan(p.ntrials,2);
-p.targ_apertures = nan(p.ntrials,2);
+% p.targ_angs = nan(p.ntrials,2);
+p.targ_angs = nan(p.ntrials/2,1);
+p.targ_apertures = cell(p.ntrials/2,1);
 
 
 % ------- Screen setup, optics --------- %
@@ -136,7 +136,7 @@ p.viewing_distance = 56; % cm, in the experiment room (inside lab)
 % open a screen, to get the resolution
 s = max(Screen('Screens'));
 HideCursor;
-[w, p.scr_rect] = Screen('OpenWindow',s,[0 0 0]);
+[w, p.scr_rect] = Screen('OpenWindow',s,[0 0 0]); 
 % [w, p.scr_rect] = Screen('OpenWindow',max(Screen('Screens')),[0 0 0]); HideCursor;
 Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 Screen('Preference','TextRenderer',1);
@@ -366,7 +366,8 @@ for tt = 1:p.ntrials
     
 
     % this trial's position(s)
-    this_ang = nan(1,2);
+    % this_ang = nan(1,2);
+    this_ang = nan(1);
     this_ang(1) = current_degree;
     this_shape = strings(1); % Create a 1x1 string array
     this_shape(1) = string(current_shape); % Convert character array to string
@@ -380,8 +381,9 @@ for tt = 1:p.ntrials
         p.targ_coords{2}(tt,:) = p.wm_ecc * [cosd(this_ang(2)) sind(this_ang(2))];
     end
     
-    p.targ_angs(tt,:) = this_ang; % save these for convenience
-    p.targ_apertures(tt,:) = this_shape; % save this aperture shape
+    % p.targ_angs(tt,:) = this_ang; % save these for convenience
+    p.targ_angs(tt) = this_ang; % save these for convenience
+    p.targ_apertures(tt) = {this_shape}; % save this aperture shape
     
     % this trial's colors
     tmp_color_idx = randperm(size(p.wm_colors,1));
