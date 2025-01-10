@@ -1,11 +1,11 @@
-function wmDistort_pilot1()
+function wmDistort_pilot2()
 Screen('Preference', 'SkipSyncTests', 1);
 
 % Create input dialog for subject number, run number, and eye tracker condition
-prompt = {'Enter Subject Number (e.g., subj001):', 'Enter Run Number (e.g., 1):', 'Eye Tracker Condition (0 = Off, 1 = On):'};
+prompt = {'Enter Subject Number (e.g., sub001):', 'Enter Run Number (e.g., 1):', 'Eye Tracker Condition (0 = Off, 1 = On):'};
 dlg_title = 'Subject, Run, and Eye Tracker Input';
 num_lines = 1; 
-default_input = {'subj001', '1', '0'};  % Default values for subj, run, and eye tracker condition
+default_input = {'sub001', '1', '0'};  % Default values for subj, run, and eye tracker condition
 
 % Get user input via dialog box
 user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
@@ -21,7 +21,7 @@ if et ~= 0 && et ~= 1
 end
 
 try
-p.expt_name = 'wmDistort_pilot1';
+p.expt_name = 'wmDistort_pilot2';
 p.subj = subj;
 p.run = run; 
 p.do_et = et;
@@ -29,14 +29,6 @@ p.do_et = et;
 % Display the experiment settings for confirmation
 disp(['Running experiment for  Subject: ', p.subj, ', Run: ', num2str(p.run)]);
 disp(['Eye Tracker Condition: ', num2str(p.do_et)]);  % Shows 0 or 1
-    
-
-% try
-% p.expt_name = 'wmDistort_pilot1';
-% 
-% p.do_et = 0;
-% p.subj = subj;
-% p.run = run;
 
 % data directory 2 above the current directory
 p.filename = sprintf('../../data/wmDistort_data/%s_r%02.f_%s_%s.mat',p.subj,p.run,p.expt_name,datestr(now,30));
@@ -72,64 +64,117 @@ p.space = KbName('space');
 
 % ------ color of relevant stim features ----------- %
 p.bg_color  = 20*[1 1 1];
-p.fix_color = 75*[1 1 1];%[150 150 150];        % during trial/delay/etc
-% p.wm_colors = [200 0   0;         % red
-%                  0 0 255          % blue
-%                  180 0 180;       % purple
-%                  130 130 0];      % yellow
-p.wm_colors = 75*[1 1 1];
-                 
-
-p.choose_color = 130*[1 1 1];%[255 255 255]; % when subj should choose, color of fix
+p.fix_color = 75*[1 1 1];
+p.wm_colors = 75*[1 1 1];                
+p.choose_color = 130*[1 1 1];
 
 
+% ------ conditions: aperture setting & angles setting ------ %
+p.shapes = {'circle', 'square', 'wide_rect', 'tall_rect'};
+p.repetitions = 16; % number of target angles per each aperture condition
+p.r_cond = length(p.shapes); % numer of aperture condition
+p.overall_ntrials = p.r_cond * p.repetitions;
+p.ntrials = p.overall_ntrials/2; % run 1 full cycle into 2 runs
 
-% ------ conditions ------ %
-p.r_cond = 4; % 1: R1
-p.repetitions = 16; 
-p.ntrials = length(p.r_cond)*p.repetitions;
+% Generate degrees
+p.incre = 360/p.repetitions; % the angle should be 22.5 degrees here
+p.start_deg = 11.25;
+p.degrees = p.start_deg + (0:(p.repetitions-1)) * p.incre; % 11.25, 33.75, ..., 348.75
 
-p.conditions = nan(p.ntrials,1);
-cnt = 1;
-for cc = 1:length(p.r_cond)
-    for rr = 1:p.repetitions
-        p.conditions(cnt) = p.r_cond(cc);
-        cnt = cnt+1;
+% ------ generate condition file ------- %
+filename = sprintf('../../data/wmDistort_data/fixed_conditions.mat');  % Define filename for the fixed file
+
+% Check if the file already exists
+if ~exist(filename, 'file')
+    conditions = cell(p.overall_ntrials, 3);
+    index = 1;
+    for shape_index = 1:p.r_cond
+        for degree_index = 1:p.repetitions
+            conditions{index, 1} = p.shapes{shape_index};  % Shape
+            conditions{index, 2} = p.degrees(degree_index); % Degree
+            conditions{index, 3} = fix((index-1)/p.repetitions) + 1; % Numeric values used to distinguish aperture conditions 1:circle, 2:square, 3:wide_rect, 4:tall_rect
+            index = index + 1;
+        end
+    end
+
+    % Save the file
+    save(filename, 'conditions');
+    fprintf('Generated and saved fixed_conditions.mat\n');
+else
+    fprintf('File fixed_conditions.mat already exists. No action taken.\n');
+end
+
+
+% ------ generate random permutation or load from previous .mat file ------- %
+if mod(p.run, 2) == 1   % Odd-numbered run, use trials 1 to 32
+    load(filename, 'conditions');
+    random_permutation = randperm(size(conditions, 1));  % Generate random permutation
+    randomized_conditions = conditions(random_permutation(1:p.ntrials), :);  % Use first half (1:32)
+    % Save the random permutation into the run-specific file
+    p.random_permutation = random_permutation;
+    save(p.filename, 'p');  % Save random_permutation along with p
+else                    % Even-numbered run, use trials 33 to 64
+    % Generate the base part of the filename without the timestamp
+    prev_filename_pattern = sprintf('../../data/wmDistort_data/%s_r%02.f_%s_*.mat', p.subj, p.run-1, p.expt_name);
+    
+    % Find all matching files with the same base name (ignore the timestamp)
+    files = dir(prev_filename_pattern);
+    if ~isempty(files)
+        % Assume the most recent file is the correct one (based on timestamp)
+        [~, idx] = max([files.datenum]);
+        prev_filename = fullfile(files(idx).folder, files(idx).name);
+        loaded_data = load(prev_filename, 'p');
+        random_permutation = loaded_data.p.random_permutation;  % Retrieve the stored permutation
+        load(filename, 'conditions');  % Ensure conditions are loaded
+        randomized_conditions = conditions(random_permutation(p.ntrials+1:end), :);  % Use second half (33:64)
+        p.random_permutation = random_permutation;  % Save this permutation for the current run
+        save(p.filename, 'p');  % Save the `p` struct and the permutation for this run
+        fprintf('Second run complete, using second half of the permutation.\n');
+    else
+        error('Previous run file not found. Make sure you run an odd-numbered run first.');
     end
 end
 
-p.rnd_idx = randperm(p.ntrials);
-p.conditions = p.conditions(p.rnd_idx,:);
+% finally define conditions
+p.conditions = cell2mat(randomized_conditions(:, 3));
+
 
 
 % ------ timing of trial events --------- %
-p.aperture_dur = 2;
-p.targ_dur = 0.5;
-p.delay_dur = 2.5;
-p.cue_dur = 0.8; % a bit longer than usual
-p.feedback_dur = 0.8; 
-p.iti_range = [2 4]; % randomly choose between those
+% p.aperture_dur = 2;
+% p.targ_dur = 0.5;
+% p.delay_dur = 2.5;
+% p.cue_dur = 0.8; % a bit longer than usual
+% p.feedback_dur = 0.8; 
+% p.iti_range = [2 4]; % randomly choose between those
+% 
+% p.itis = linspace(p.iti_range(1),p.iti_range(2),p.ntrials);
+% p.itis = p.itis(randperm(p.ntrials));
 
-p.itis = linspace(p.iti_range(1),p.iti_range(2),p.ntrials);
+% ------ timing of trial events --------- %
+% Simulate by setting durations to a small number, e.g., 0.01 or just 0
+p.aperture_dur = 0.01;  % small duration
+p.targ_dur = 0.01;      % small duration
+p.delay_dur = 0.01;     % small duration
+p.cue_dur = 0.01;       % small duration
+p.feedback_dur = 0.01;  % small duration
+p.iti_range = [0.01 0.01]; % small ITI range for simulation
+
+% Randomized ITI for simulation
+p.itis = linspace(p.iti_range(1), p.iti_range(2), p.ntrials);
 p.itis = p.itis(randperm(p.ntrials));
 
 
-
 % ------- things to save -------- %
-p.targ_coords = cell(2,1);
+p.targ_coords = cell(1,1);
 p.targ_coords{1} = nan(p.ntrials,2);
-p.targ_coords{2} = nan(p.ntrials,2);
-
-p.targ_colors = cell(2,1);
+p.targ_colors = cell(1,1);
 p.targ_colors{1} = nan(p.ntrials,3);
-p.targ_colors{2} = nan(p.ntrials,3);
-% p.targ_angs = nan(p.ntrials,2);
-p.targ_angs = nan(p.ntrials/2,1);
-p.targ_apertures = cell(p.ntrials/2,1);
+p.targ_angs = nan(p.ntrials,1);
+p.targ_apertures = cell(p.ntrials,1);
 
 
 % ------- Screen setup, optics --------- %
-
 p.screen_height = 30; % cm, in the experiment room
 p.viewing_distance = 56; % cm, in the experiment room (inside lab)
 
@@ -140,11 +185,8 @@ HideCursor;
 % [w, p.scr_rect] = Screen('OpenWindow',max(Screen('Screens')),[0 0 0]); HideCursor;
 Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 Screen('Preference','TextRenderer',1);
-
 p.ifi = Screen('GetFlipInterval',w);
-
 p.center = p.scr_rect([3 4])/2;
-
 p.ppd = p.scr_rect(4)/(2*atan2d(p.screen_height/2,p.viewing_distance));
 
 
@@ -229,34 +271,6 @@ if p.do_et == 1
 
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHAPES and STARTING ANGLES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-shapes = {'circle', 'wide_rect', 'tall_rect', 'square'};
-% Repeat the shape list enough times to cover all trials
-
-% Setting the number of conditions and degrees of increment and the
-% starting wm
-p.num_shapes = length(shapes);
-p.num_conditions = p.ntrials/p.num_shapes;
-p.incre = 360/16; %the angle should be 22.5 degrees here
-p.start_deg = 11.25;
-
-% Generate degrees
-degrees = p.start_deg + (0:(p.num_conditions-1)) * p.incre; % 11.25, 33.75, ..., 348.75
-
-% Create a list of unique conditions (shape, degree)
-conditions = cell(p.num_shapes * p.num_conditions, 2); % Preallocate cell array for conditions
-index = 1;
-for shape_index = 1:p.num_shapes
-    for degree_index = 1:p.num_conditions
-        conditions{index, 1} = shapes{shape_index};  % Shape
-        conditions{index, 2} = degrees(degree_index); % Degree
-        index = index + 1;
-    end
-end
-
-% Shuffle the conditions for randomness
-% randomized_conditions = conditions(randperm(size(conditions, 1)), :);
 
 % START OF EXPERIMENT
 
@@ -313,50 +327,6 @@ end
 
 WaitSecs(1.5); % wait a bit before first trial
 
-% ------ generate file based on run number ------- %
-% filename = '../../data/wmDistort_data/temp_randomized_conditions.mat';  % Define filename
-% 
-% if mod(p.run, 2) == 1
-%     % If run number is odd, generate a new .mat file with 1 to 32 trials
-%     p.ntrials = 32;
-%     temp_randomized_conditions = conditions(randperm(size(conditions, 1)), :);
-%     save(filename, 'temp_randomized_conditions');
-%     randomized_conditions = temp_randomized_conditions(1:32, :);  % Use trials 1-32
-% else
-%     % If run number is even, load the file and use trials 33 to 64
-%     if isfile(filename)
-%         load(filename, 'temp_randomized_conditions');
-%         p.ntrials = 32;
-%         randomized_conditions = temp_randomized_conditions(33:64, :);  % Use trials 33-64
-%     else
-%         error('No existing .mat file found for this even run.');
-%     end
-% end
-
-% ------ generate file based on run number ------- %
-if mod(p.run, 2) == 1
-    filename = sprintf('../../data/wmDistort_data/%s_run%d_randomized_conditions.mat', p.subj, p.run);  % Define filename
-else
-    filename = sprintf('../../data/wmDistort_data/%s_run%d_randomized_conditions.mat', p.subj, p.run-1);
-end
-
-if mod(p.run, 2) == 1
-    % If run number is odd, generate a new .mat file with 1 to 32 trials
-    p.ntrials = 32;
-    temp_randomized_conditions = conditions(randperm(size(conditions, 1)), :);
-    save(filename, 'temp_randomized_conditions');
-    randomized_conditions = temp_randomized_conditions(1:32, :);  % Use trials 33-64
-else
-    % If run number is even, load the file and use trials 33 to 64
-    if isfile(filename)
-        load(filename, 'temp_randomized_conditions');
-        p.ntrials = 32;
-        randomized_conditions = temp_randomized_conditions(33:64, :);  % Use trials 33-64
-    else
-        error('No existing .mat file found for this even run.');
-    end
-end
-
 for tt = 1:p.ntrials
     %disp("-----------------------------------------------------------")
     %disp(tt)
@@ -366,7 +336,6 @@ for tt = 1:p.ntrials
     
 
     % this trial's position(s)
-    % this_ang = nan(1,2);
     this_ang = nan(1);
     this_ang(1) = current_degree;
     this_shape = strings(1); % Create a 1x1 string array
@@ -375,13 +344,6 @@ for tt = 1:p.ntrials
 
     
     p.targ_coords{1}(tt,:) = p.wm_ecc * [cosd(this_ang(1)) sind(this_ang(1))];
-    
-    if p.conditions(tt,1) ~= 1
-        this_ang(2) = this_ang(1)+p.sep_ang + (360-2*p.sep_ang)*rand(1); % compute second position if necessary
-        p.targ_coords{2}(tt,:) = p.wm_ecc * [cosd(this_ang(2)) sind(this_ang(2))];
-    end
-    
-    % p.targ_angs(tt,:) = this_ang; % save these for convenience
     p.targ_angs(tt) = this_ang; % save these for convenience
     p.targ_apertures(tt) = {this_shape}; % save this aperture shape
     
@@ -389,10 +351,6 @@ for tt = 1:p.ntrials
     tmp_color_idx = randperm(size(p.wm_colors,1));
     
     p.targ_colors{1}(tt,:) = p.wm_colors(tmp_color_idx(1),:);
-    
-    if p.conditions(tt,1) ~= 1
-        p.targ_colors{2}(tt,:) = p.wm_colors(tmp_color_idx(2),:);
-    end
     
     
     % trial starts/aperture display (XDAT 1) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -408,13 +366,6 @@ for tt = 1:p.ntrials
     Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
     Screen('Flip',w);
 
-%     while GetSecs < trial_start
-%         Screen('FillRect',w,[0 0 0]);
-%         Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0], p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
-%         Screen('DrawDots',w,[0;0], p.fix_size_in*p.ppd*2, p.fix_color,p.center,2); 
-%         Screen('Flip',w);
-%     end
-    
 
     while GetSecs < trial_start + p.aperture_dur
 
@@ -465,12 +416,7 @@ for tt = 1:p.ntrials
         
         % target 1
         Screen('DrawDots',w,p.ppd*[1;-1].*p.targ_coords{1}(tt,:).', p.wm_size*p.ppd, p.targ_colors{1}(tt,:), p.center, 2);
-        
-        if p.conditions(tt,1)~=1
-            
-            % if necessary, target 2
-            Screen('DrawDots',w,p.ppd*[1;-1].*p.targ_coords{2}(tt,:).', p.wm_size*p.ppd, p.targ_colors{2}(tt,:), p.center, 2);
-        end
+
         
         % fixation
         %Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
@@ -517,11 +463,6 @@ for tt = 1:p.ntrials
                 error('Unknown shape: %s', shape);
         end
         
-%         if p.conditions(tt,1) ~= 3
-%             Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.choose_color,p.center,2);
-%         else
-%             Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.targ_colors{1}(tt,:),p.center,2);
-%         end
         
         %Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
         Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
@@ -567,12 +508,7 @@ for tt = 1:p.ntrials
         end
         
         Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
-
-        if p.conditions(tt,1) == 3
-            Screen('DrawDots',w,[0;0],p.cue_size*p.ppd,p.choose_color,p.center,2);
-        else
-            Screen('DrawDots',w,[0;0],p.cue_size*p.ppd,p.targ_colors{1}(tt,:),p.center,2);
-        end
+        Screen('DrawDots',w,[0;0],p.cue_size*p.ppd,p.targ_colors{1}(tt,:),p.center,2);
         Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
 
         Screen('Flip',w);
@@ -621,11 +557,6 @@ for tt = 1:p.ntrials
         % target 1
         Screen('DrawDots',w,p.ppd*[1;-1].*p.targ_coords{1}(tt,:).', p.wm_size*p.ppd, p.targ_colors{1}(tt,:), p.center, 2);
         
-        if p.conditions(tt,1)~=1
-            
-            % if necessary, target 2
-            Screen('DrawDots',w,p.ppd*[1;-1].*p.targ_coords{2}(tt,:).', p.wm_size*p.ppd, p.targ_colors{2}(tt,:), p.center, 2);
-        end
         
         % fixation
 %        Screen('DrawDots',w,[0;0],p.fix_size*p.ppd,p.fix_color,p.center,2);
@@ -637,11 +568,8 @@ for tt = 1:p.ntrials
         
          %       Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
 
-        if p.conditions(tt,1) == 3
-            Screen('DrawDots',w,[0;0],p.cue_size*p.ppd,p.choose_color,p.center,2);
-        else
-            Screen('DrawDots',w,[0;0],p.cue_size*p.ppd,p.targ_colors{1}(tt,:),p.center,2);
-        end
+
+        Screen('DrawDots',w,[0;0],p.cue_size*p.ppd,p.targ_colors{1}(tt,:),p.center,2);
         Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
 
         
@@ -691,8 +619,7 @@ for tt = 1:p.ntrials
         
     end
     
-
-    disp("end of one tt")
+    % disp("end of one tt")
     % save [note: in scanner, do this at beginning of ITI after first flip]
     save(p.filename,'p');
     
@@ -716,7 +643,7 @@ Screen('Flip',w);
 
 resp = 0;
 while resp == 0
-    [resp, timeStamp] = checkForResp(p.space, p.esc_key);
+    [resp, ts] = checkForResp(p.space, p.esc_key);
 end
 clear resp;
 

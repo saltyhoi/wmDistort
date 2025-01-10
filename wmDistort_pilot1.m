@@ -2,10 +2,10 @@ function wmDistort_pilot1()
 Screen('Preference', 'SkipSyncTests', 1);
 
 % Create input dialog for subject number, run number, and eye tracker condition
-prompt = {'Enter Subject Number (e.g., subj001):', 'Enter Run Number (e.g., 1):', 'Eye Tracker Condition (0 = Off, 1 = On):'};
+prompt = {'Enter Subject Number (e.g., sub001):', 'Enter Run Number (e.g., 1):', 'Eye Tracker Condition (0 = Off, 1 = On):'};
 dlg_title = 'Subject, Run, and Eye Tracker Input';
 num_lines = 1; 
-default_input = {'subj001', '1', '0'};  % Default values for subj, run, and eye tracker condition
+default_input = {'sub001', '1', '0'};  % Default values for subj, run, and eye tracker condition
 
 % Get user input via dialog box
 user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
@@ -85,8 +85,8 @@ p.choose_color = 130*[1 1 1];%[255 255 255]; % when subj should choose, color of
 
 
 % ------ conditions ------ %
-p.r_cond = 1; % 1: R1
-p.repetitions = 64; 
+p.r_cond = 4; % 1: R1
+p.repetitions = 16; 
 p.ntrials = length(p.r_cond)*p.repetitions;
 
 p.conditions = nan(p.ntrials,1);
