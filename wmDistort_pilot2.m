@@ -141,28 +141,28 @@ p.conditions = cell2mat(randomized_conditions(:, 3));
 
 
 % ------ timing of trial events --------- %
-% p.aperture_dur = 2;
-% p.targ_dur = 0.5;
-% p.delay_dur = 2.5;
-% p.cue_dur = 0.8; % a bit longer than usual
-% p.feedback_dur = 0.8; 
-% p.iti_range = [2 4]; % randomly choose between those
-% 
-% p.itis = linspace(p.iti_range(1),p.iti_range(2),p.ntrials);
-% p.itis = p.itis(randperm(p.ntrials));
+p.aperture_dur = 2;
+p.targ_dur = 0.5;
+p.delay_dur = 2.5;
+p.cue_dur = 0.8; % a bit longer than usual
+p.feedback_dur = 0.8; 
+p.iti_range = [2 4]; % randomly choose between those
+
+p.itis = linspace(p.iti_range(1),p.iti_range(2),p.ntrials);
+p.itis = p.itis(randperm(p.ntrials));
 
 % ------ timing of trial events --------- %
 % Simulate by setting durations to a small number, e.g., 0.01 or just 0
-p.aperture_dur = 0.01;  % small duration
-p.targ_dur = 0.01;      % small duration
-p.delay_dur = 0.01;     % small duration
-p.cue_dur = 0.01;       % small duration
-p.feedback_dur = 0.01;  % small duration
-p.iti_range = [0.01 0.01]; % small ITI range for simulation
-
-% Randomized ITI for simulation
-p.itis = linspace(p.iti_range(1), p.iti_range(2), p.ntrials);
-p.itis = p.itis(randperm(p.ntrials));
+% p.aperture_dur = 0.01;  % small duration
+% p.targ_dur = 0.01;      % small duration
+% p.delay_dur = 0.01;     % small duration
+% p.cue_dur = 0.01;       % small duration
+% p.feedback_dur = 0.01;  % small duration
+% p.iti_range = [0.01 0.01]; % small ITI range for simulation
+% 
+% % Randomized ITI for simulation
+% p.itis = linspace(p.iti_range(1), p.iti_range(2), p.ntrials);
+% p.itis = p.itis(randperm(p.ntrials));
 
 
 % ------- things to save -------- %
@@ -643,7 +643,7 @@ Screen('Flip',w);
 
 resp = 0;
 while resp == 0
-    [resp, ts] = checkForResp(p.space, p.esc_key);
+    [resp, timeStamp] = checkForResp(p.space, p.esc_key);
 end
 clear resp;
 
