@@ -11,9 +11,9 @@ default_input = {'sub001', '1', '0'};  % Default values for subj, run, and eye t
 user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
 
 % Extract the inputs from the user input dialog
-subj = user_input{1};  % Subject number
-run = str2double(user_input{2});  % Run number  , convert to double
-et = str2double(user_input{3});  % Eye tracker condition (0 or 1)
+subj = strtrim(user_input{1});       % Subject number
+run  = str2double(strtrim(user_input{2}));  % Run number  , convert to double
+et   = str2double(strtrim(user_input{3}));   % Eye tracker condition (0 or 1)
 
 % Check if eye tracker condition is valid
 if et ~= 0 && et ~= 1

@@ -15,9 +15,9 @@ default_input = {'sub001', '1', '0', '1'};  % Default: no eye tracker, mouse res
 user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
 
 % Extract the inputs from the user input dialog
-subj = user_input{1};  % Subject number
-run = str2double(user_input{2});  % Run number  , convert to double
-et = str2double(user_input{3});  % Eye tracker condition (0 or 1)
+subj = strtrim(user_input{1});       % Subject number
+run  = str2double(strtrim(user_input{2}));  % Run number  , convert to double
+et   = str2double(strtrim(user_input{3}));   % Eye tracker condition (0 or 1)
 
 % Check if eye tracker condition is valid
 if et ~= 0 && et ~= 1
@@ -591,7 +591,7 @@ for tt = 1:p.ntrials
                     Screen('DrawDots', w, [x; y], 10, [255 0 0], [], 2);  % red dot
                 
                     Screen('Flip', w);  % Show feedback frame
-                    WaitSecs(0.3);      % Brief pause to let participant see feedback
+                    WaitSecs(0.5);      % Brief pause to let participant see feedback
                 end
     
                 % optional escape check
