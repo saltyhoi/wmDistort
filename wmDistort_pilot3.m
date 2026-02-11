@@ -1,24 +1,27 @@
-function wmDistort_pilot2()
+function wmDistort_pilot3()
 Screen('Preference', 'SkipSyncTests', 1);
 
 % Create input dialog for subject number, run number, and eye tracker condition
 prompt = {'Enter Subject Number (e.g., sub001):'; 
     'Enter Run Number (e.g., 1):'; 
     'Eye Tracker Condition (0 = Off, 1 = On):';
+    'Response Mode (0 = Eye, 1 = Mouse):';
     'Display Mode (0 = Behavioral room, 1 = fMRI room):'};
-dlg_title = 'Subject, Run, and Eye Tracker Input';
+dlg_title = 'Subject & Run Info Input';
 num_lines = 1; 
-default_input = {'sub777', '1', '1', '0'};  % Default: no eye tracker, mouse response
+default_input = {'sub778', '1', '1', '1', '0'};  % Default: no eye tracker, mouse response, behavioral room
+
 
 % Get user input via dialog box
 user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
 
-p.debug = false;
-p.expt_name = 'wmDistort_pilot2';
+% p.debug = false;
+p.expt_name = 'wmDistort_pilot3';
 p.subj = strtrim(user_input{1}); % Subject number
 p.run = str2double(strtrim(user_input{2}));  % Run number  , convert to double 
 p.do_et = str2double(strtrim(user_input{3}));   % Eye tracker condition (0 or 1)
-p.display = str2double(user_input{4});
+p.response_mode = str2double(user_input{4});
+p.display = str2double(user_input{5});
 
 % Check if eye tracker condition is valid
 if p.do_et ~= 0 && p.do_et ~= 1
@@ -71,10 +74,18 @@ p.choose_color = 130*[1 1 1];
 
 % ------ conditions: aperture setting & angles setting ------ %
 p.shapes = {'circle', 'square', 'wide_rect', 'tall_rect'};
-p.repetitions = 16; % number of target angles per each aperture condition
+p.repetitions = 2; % number of target angles per each aperture condition
 p.r_cond = length(p.shapes); % numer of aperture condition
 p.overall_ntrials = p.r_cond * p.repetitions;
 p.ntrials = p.overall_ntrials/2; % run 1 full cycle into 2 runs
+
+% ------- mouse stuff --------------------------- %
+
+p.mouse_response_dur = 3; % seconds, or however long you want
+p.mouse_rt = nan(p.ntrials, 1);
+p.this_mouse_traj = cell(p.ntrials, 1);
+
+% ------- mouse stuff --------------------------- %
 
 % Generate degrees
 p.incre = 360/p.repetitions; % the angle should be 22.5 degrees here
@@ -144,7 +155,7 @@ p.conditions = cell2mat(randomized_conditions(:, 3));
 p.aperture_dur = 2;
 p.targ_dur = 0.5;
 p.delay_dur = 2.5;
-p.cue_dur = 0.8; % a bit longer than usual
+p.cue_dur = 3; % a bit longer than usual 0.8
 p.feedback_dur = 0.8; 
 p.iti_range = [2 4]; % randomly choose between those
 
@@ -178,11 +189,12 @@ p.targ_apertures = cell(p.ntrials,1);
 % including monitor info
 if p.display == 0 % behavior room
     p.screen_height_cm = 30;
-    p.viewing_distance_cm = 52;
+    p.viewing_distance_cm = 56;
 elseif p.display == 1 % fMRI room
     p.screen_height_cm = 35.5;
     p.viewing_distance_cm = 110;
 end
+
 
 % open a screen, to get the resolution
 s = max(Screen('Screens'));
@@ -197,12 +209,12 @@ p.screen_height_px = RectHeight(p.scr_rect);
 
 p.ppd = p.screen_height_px / (2*atan2d(p.screen_height_cm/2, p.viewing_distance_cm));
 
+
 p.aperture_rect = CenterRectOnPoint([0 0 2 2]*p.ppd*p.aperture_size,p.center(1),p.center(2));
 p.fix_rect_out  = CenterRectOnPoint([0 0 2 2] * p.ppd  * p.fix_size_out,p.center(1),p.center(2));
 p.fix_rect_in   = CenterRectOnPoint([0 0 2 2] * p.ppd  * p.fix_size_in, p.center(1),p.center(2));
 p.screen_width_px  = RectWidth(p.scr_rect);
 p.screen_height_px = RectHeight(p.scr_rect);
-
 
 % Set aperture size based on the screen height
 phi = 0.618; % the golden ratio for rectangle;
@@ -222,6 +234,7 @@ p.aperture_wide_rect = CenterRectOnPoint(aperture_wide_rect_px(1:4), p.center(1)
 p.aperture_tall_rect = CenterRectOnPoint(aperture_tall_rect_px(1:4), p.center(1), p.center(2));
 
 
+
 % --------- eyetracking ----------- %
 if p.do_et == 1
     
@@ -232,7 +245,8 @@ if p.do_et == 1
     
     el.msgfontcolour=p.fix_color(1);
     p.foregroundcolour=p.fix_color(1);
-    
+
+
     EyelinkUpdateDefaults(el);
     Eyelink('Initialize','PsychEyelinkDispatchCallback') % initialises the eyetracker
     Eyelink('command','calibration_type=HV13'); % updating number of callibration dots
@@ -251,19 +265,26 @@ if p.do_et == 1
     % if a widescreen display:
     if p.scr_rect(3)==2560 && p.scr_rect(4)==1440
         %         Eyelink('command', 'generate_default_targets = NO');
+        %
         %         % 13 samples
         %         Eyelink('command','calibration_samples = 13');
         %         Eyelink('command','validation_samples = 13');
+        %
         %         % set up two random orders:
         %         calib_str = sprintf('%d,', randperm(13)-1);
         %         valid_str = sprintf('%d,', randperm(13)-1);
+        %
         %         Eyelink('command',sprintf('calibration_sequence = %s',calib_str(1:end-1)));
+        %
+        %
         %         Eyelink('command',sprintf('validation_sequence = %s',valid_str(1:end-1)));
         
         Eyelink('command', 'calibration_area_proportion 0.59 0.83');
         %Eyelink('command', 'calibration_area_proportion 0.59 0.83');
         
     end
+    
+    
     %------ calibrate the eye tracker --------
     EyelinkDoTrackerSetup(el);
     Eyelink('openfile',p.eyedatafile);
@@ -358,21 +379,20 @@ for tt = 1:p.ntrials
     current_shape = randomized_conditions{tt, 1}; % Get the current shape
     current_degree = randomized_conditions{tt, 2}; % Get the current degree
     %disp(['Shape: ', current_shape, ', Degree: ', num2str(current_degree)]);
-    if isfield(p,'debug') && p.debug
-        % Identify which aperture field is used
-        switch current_shape
-            case 'circle',    apField = 'p.aperture_circle';
-            case 'square',    apField = 'p.aperture_square';
-            case 'wide_rect', apField = 'p.aperture_wide_rect';
-            case 'tall_rect', apField = 'p.aperture_tall_rect';
-            otherwise,        apField = 'UNKNOWN';
-        end
-    
-        % Print once per trial
-        disp(sprintf('DEBUG T%02d | shape=%s | angle=%.2f | %s', ...
-            tt, current_shape, current_degree, apField));
-    end
-
+%     if isfield(p,'debug') && p.debug
+%         % Identify which aperture field is used
+%         switch current_shape
+%             case 'circle',    apField = 'p.aperture_circle';
+%             case 'square',    apField = 'p.aperture_square';
+%             case 'wide_rect', apField = 'p.aperture_wide_rect';
+%             case 'tall_rect', apField = 'p.aperture_tall_rect';
+%             otherwise,        apField = 'UNKNOWN';
+%         end
+%     
+%         % Print once per trial
+%         disp(sprintf('DEBUG T%02d | shape=%s | angle=%.2f | %s', ...
+%             tt, current_shape, current_degree, apField));
+%     end
 
     % this trial's position(s)
     this_ang = nan(1);
@@ -521,50 +541,169 @@ for tt = 1:p.ntrials
         end
         
     end
+
+    % Mouse response period (XDAT 4) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if p.response_mode == 1
+        if p.do_et == 1
+            Eyelink('Message','xDAT %i',4);
+        end
+
+        SetMouse(p.center(1), p.center(2), w);  % move mouse to center
+        ShowCursor(1);                          % show mouse cursor
+
+        this_frame = 1;  % initialize frame counter
+        max_frames = round(p.mouse_response_dur * 120); % assuming 120 Hz
+        p.this_mouse_traj{tt} = nan(max_frames, 2);     % preallocate trajectory
+
+        no_resp = 1;     % response flag
+        tStart = GetSecs;
+    
+        while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur && no_resp
+    
+            while (GetSecs < tStart + p.mouse_response_dur) && no_resp
+    
+                % fill aperture
+                Screen('FillRect', w, [0 0 0]);
+                switch current_shape
+                    case 'circle'
+                        Screen('FillOval', w, p.bg_color, p.aperture_circle);
+                    case 'wide_rect'
+                        Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
+                    case 'tall_rect'
+                        Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
+                    case 'square'
+                        Screen('FillRect', w, p.bg_color, p.aperture_square);
+                    otherwise
+                        error('Unknown shape: %s', current_shape);
+                end
+    
+                % draw fixation
+    
+                Screen('DrawDots', w, [0;0], p.fix_size_out*p.ppd*2 + p.fix_pen, p.fix_color, p.center, 2);
+                Screen('DrawDots', w, [0;0], p.fix_size_out*p.ppd*2 - p.fix_pen, p.bg_color, p.center, 2);
+                % Screen('DrawDots', w, [0;0], p.cue_size*p.ppd, p.targ_colors{1}(tt,:), p.center, 2); % center grey dot
+                Screen('DrawDots', w, [0;0], p.fix_size_in*p.ppd*2, p.fix_color, p.center, 2);
+    
+                Screen('Flip', w);
+
+                % % Screenshotting the cursor -----------------%
+                % [x, y] = GetMouse(w);
+                % % Draw your own cursor (e.g., a small circle)
+                % Screen('DrawDots', w, [x; y], 10, [255 0 0], [], 2);
+                % 
+                % imageArray = Screen('GetImage', w);
+                % imwrite(imageArray, 'screenshot_with_cursor.png'); 
+                % % Screenshotting the cursor -----------------%
+
+
+                % get mouse position
+                [x, y, buttons] = GetMouse(w);
+                if this_frame <= max_frames
+                    % p.this_mouse_traj{tt}(this_frame, :) = [x, y] / p.ppd;        % Alison's code save the format this way
+                    p.this_mouse_traj{tt}(this_frame, :) = ([1, -1] .* ([x, y] - p.center)) / p.ppd;
+                    this_frame = this_frame + 1;
+                end
+    
+                % check for click
+                if any(buttons)
+                    no_resp = 0;
+                    tEnd = GetSecs;
+                    p.mouse_rt(tt) = tEnd - tStart;
+                    mouse_pos_deg = ([1, -1] .* ([x, y] - p.center)) / p.ppd;
+                    p.mouse_click_pos(tt, :) = mouse_pos_deg;
+                   % p.mouse_click_pos(tt, :) = [x, y] / p.ppd;                     % Alison's code save the format this way
+                
+                    % === Draw feedback frame ===
+                    Screen('FillRect', w, [0 0 0]);
+                    switch current_shape
+                        case 'circle'
+                            Screen('FillOval', w, p.bg_color, p.aperture_circle);
+                        case 'wide_rect'
+                            Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
+                        case 'tall_rect'
+                            Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
+                        case 'square'
+                            Screen('FillRect', w, p.bg_color, p.aperture_square);
+                    end
+                
+                    % Draw central fixation and cue
+                    Screen('DrawDots', w, [0;0], p.fix_size_out*p.ppd*2 + p.fix_pen, p.fix_color, p.center, 2);
+                    Screen('DrawDots', w, [0;0], p.fix_size_out*p.ppd*2 - p.fix_pen, p.bg_color, p.center, 2);
+                    Screen('DrawDots', w, [0;0], p.cue_size*p.ppd, p.targ_colors{1}(tt,:), p.center, 2);
+                    Screen('DrawDots', w, [0;0], p.fix_size_in*p.ppd*2, p.fix_color, p.center, 2);
+                
+                    % === Feedback marker: red dot where user clicked ===
+                    Screen('DrawDots', w, [x; y], 10, [255 0 0], [], 2);  % red dot
+                
+                    Screen('Flip', w);  % Show feedback frame
+                    WaitSecs(0.3);      % Brief pause to let participant see feedback
+                end
+    
+                % optional escape check
+                [resp] = checkForResp([], p.esc_key);
+                if resp == -1
+                    Screen('CloseAll'); ShowCursor;
+                    if p.do_et == 1
+                        Eyelink('StopRecording');
+                        Eyelink('ShutDown');
+                    end
+                    save(p.filename,'p');
+                    return;
+                end
+    
+            end % end of inner while mouse response
+    
+            HideCursor;
+    
+        end % end of outer while timing loop
     
     % go cue (XDAT 4) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   
-    if p.do_et == 1
-        Eyelink('Message','xDAT %i',4);
-    end
+    else
     
-    while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur
-        
-        % aperture
-        Screen('FillRect',w,[0 0 0]);
-        %draw_aperture();
-        switch current_shape
-            case {'circle'}
-                Screen('FillOval', w, p.bg_color, p.aperture_circle);
-            case 'wide_rect'
-                Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
-            case 'tall_rect'
-                Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
-            case 'square'
-                Screen('FillRect', w, p.bg_color, p.aperture_square);
-            otherwise
-                error('Unknown shape: %s', shape);
+        if p.do_et == 1
+            Eyelink('Message','xDAT %i',4);
         end
-        
-        Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
-        Screen('DrawDots',w,[0;0],p.cue_size*p.ppd,p.targ_colors{1}(tt,:),p.center,2);
-        Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
-
-        Screen('Flip',w);
-        
-        % check for esc.... 
-        [resp] = checkForResp([], p.esc_key); % TODO: maybe turn on/off gaze indicator?
-        if resp == -1
-            Screen('CloseAll'); ShowCursor;
-            if p.do_et == 1
-                Eyelink('StopRecording');
-                Eyelink('ShutDown');
+    
+        while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur
+    
+            % aperture
+            Screen('FillRect', w, [0 0 0]);
+            switch current_shape
+                case 'circle'
+                    Screen('FillOval', w, p.bg_color, p.aperture_circle);
+                case 'wide_rect'
+                    Screen('FillRect', w, p.bg_color, p.aperture_wide_rect);
+                case 'tall_rect'
+                    Screen('FillRect', w, p.bg_color, p.aperture_tall_rect);
+                case 'square'
+                    Screen('FillRect', w, p.bg_color, p.aperture_square);
+                otherwise
+                    error('Unknown shape: %s', current_shape);
             end
-            save(p.filename,'p');
-            return;
-        end
-    end
     
+            Screen('DrawDots', w, [0;0], p.fix_size_out*p.ppd*2 + p.fix_pen, p.fix_color, p.center, 2);
+            Screen('DrawDots', w, [0;0], p.fix_size_out*p.ppd*2 - p.fix_pen, p.bg_color, p.center, 2);
+            Screen('DrawDots', w, [0;0], p.cue_size*p.ppd, p.targ_colors{1}(tt,:), p.center, 2);
+            Screen('DrawDots', w, [0;0], p.fix_size_in*p.ppd*2, p.fix_color, p.center, 2);
+    
+            Screen('Flip', w);
+    
+            % check for escape key
+            [resp] = checkForResp([], p.esc_key);
+            if resp == -1
+                Screen('CloseAll'); ShowCursor;
+                if p.do_et == 1
+                    Eyelink('StopRecording');
+                    Eyelink('ShutDown');
+                end
+                save(p.filename, 'p');
+                return;
+            end
+    
+        end % end while go cue timing loop
+    
+    end % end if p.response_mode == 1
+
     % feedback (XDAT 5, tarx, tary) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     if p.do_et == 1
@@ -574,8 +713,17 @@ for tt = 1:p.ntrials
         Eyelink('Message','xDAT %i',5);
         
     end
-    
-    while GetSecs < trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur
+    % Determine feedback start time based on actual RT (adjust cue duration)
+    if ~isempty(p.mouse_rt(tt)) && p.mouse_rt(tt) < p.cue_dur
+        % Participant responded early, so shift feedback earlier
+        feedback_start = trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.mouse_rt(tt);
+    else
+        % No early response, use full cue duration
+        feedback_start = trial_start + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur;
+    end
+
+
+    while GetSecs < feedback_start + p.feedback_dur 
         
         % aperture
         Screen('FillRect',w,[0 0 0]);
@@ -636,7 +784,7 @@ for tt = 1:p.ntrials
         Eyelink('Message','xDAT %i',6);
     end
 
-    while GetSecs < trial_start + + p.aperture_dur + p.targ_dur + p.delay_dur + p.cue_dur + p.feedback_dur + p.itis(tt)
+    while GetSecs < feedback_start + p.feedback_dur + p.itis(tt)
         Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2+p.fix_pen,p.fix_color,p.center,2); Screen('DrawDots',w,[0;0],p.fix_size_out*p.ppd*2-p.fix_pen,p.bg_color,p.center,2); 
         Screen('DrawDots',w,[0;0],p.fix_size_in*p.ppd*2,p.fix_color,p.center,2); 
         
@@ -682,7 +830,7 @@ Screen('Flip',w);
 
 resp = 0;
 while resp == 0
-    [resp, ~] = checkForResp(p.space, p.esc_key);
+    [resp, timeStamp] = checkForResp(p.space, p.esc_key);
 end
 clear resp;
 
