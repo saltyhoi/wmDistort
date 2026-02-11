@@ -2,34 +2,33 @@ function wmDistort_pilot3()
 Screen('Preference', 'SkipSyncTests', 1);
 
 % Create input dialog for subject number, run number, and eye tracker condition
-prompt = {'Enter Subject Number (e.g., sub001):                                                            .', 
-    'Enter Run Number (e.g., 1):', 
-    'Eye Tracker Condition (0 = Off, 1 = On):',
-    'Response Mode (0 = Eye, 1 = Mouse):'};
+prompt = {'Enter Subject Number (e.g., sub001):'; 
+    'Enter Run Number (e.g., 1):'; 
+    'Eye Tracker Condition (0 = Off, 1 = On):';
+    'Response Mode (0 = Eye, 1 = Mouse):';
+    'Display Mode (0 = Behavioral room, 1 = fMRI room):'};
 dlg_title = 'Subject & Run Info Input';
 num_lines = 1; 
-default_input = {'sub001', '1', '0', '1'};  % Default: no eye tracker, mouse response
+default_input = {'sub778', '1', '1', '1', '0'};  % Default: no eye tracker, mouse response, behavioral room
 
 
 % Get user input via dialog box
 user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
 
-% Extract the inputs from the user input dialog
-subj = strtrim(user_input{1});       % Subject number
-run  = str2double(strtrim(user_input{2}));  % Run number  , convert to double
-et   = str2double(strtrim(user_input{3}));   % Eye tracker condition (0 or 1)
+% p.debug = false;
+p.expt_name = 'wmDistort_pilot3';
+p.subj = strtrim(user_input{1}); % Subject number
+p.run = str2double(strtrim(user_input{2}));  % Run number  , convert to double 
+p.do_et = str2double(strtrim(user_input{3}));   % Eye tracker condition (0 or 1)
+p.response_mode = str2double(user_input{4});
+p.display = str2double(user_input{5});
 
 % Check if eye tracker condition is valid
-if et ~= 0 && et ~= 1
+if p.do_et ~= 0 && p.do_et ~= 1
     error('Invalid input for Eye Tracker condition. Must be 0 or 1.');
 end
 
 try
-p.expt_name = 'wmDistort_pilot3';
-p.subj = subj;
-p.run = run; 
-p.do_et = et;
-p.response_mode = str2double(user_input{4});
  
 % Display the experiment settings for confirmation
 disp(['Running experiment for  Subject: ', p.subj, ', Run: ', num2str(p.run)]);
@@ -50,7 +49,6 @@ p.cue_size = 0.55; % deg
 p.wm_size = 0.65;  % deg, size of WM dots
 p.sep_ang = 30;    % deg polar angle, maximum stim separation distance
 p.aperture_size = 15; % [or max ecc?]
-
 p.fix_size_in  = 0.075; % radius, deg
 p.fix_size_out = 0.30; % radius, deg
 p.fix_pen = 1.5;
@@ -76,7 +74,7 @@ p.choose_color = 130*[1 1 1];
 
 % ------ conditions: aperture setting & angles setting ------ %
 p.shapes = {'circle', 'square', 'wide_rect', 'tall_rect'};
-p.repetitions = 16; % number of target angles per each aperture condition
+p.repetitions = 2; % number of target angles per each aperture condition
 p.r_cond = length(p.shapes); % numer of aperture condition
 p.overall_ntrials = p.r_cond * p.repetitions;
 p.ntrials = p.overall_ntrials/2; % run 1 full cycle into 2 runs
@@ -188,42 +186,52 @@ p.targ_apertures = cell(p.ntrials,1);
 
 
 % ------- Screen setup, optics --------- %
-p.screen_height = 30; % cm, in the experiment room
-p.viewing_distance = 56; % cm, in the experiment room (inside lab)
+% including monitor info
+if p.display == 0 % behavior room
+    p.screen_height_cm = 30;
+    p.viewing_distance_cm = 56;
+elseif p.display == 1 % fMRI room
+    p.screen_height_cm = 35.5;
+    p.viewing_distance_cm = 110;
+end
+
 
 % open a screen, to get the resolution
 s = max(Screen('Screens'));
 HideCursor;
 [w, p.scr_rect] = Screen('OpenWindow',s,[0 0 0]); 
-% [w, p.scr_rect] = Screen('OpenWindow',max(Screen('Screens')),[0 0 0]); HideCursor;
 Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 Screen('Preference','TextRenderer',1);
 p.ifi = Screen('GetFlipInterval',w);
-p.center = p.scr_rect([3 4])/2;
-p.ppd = p.scr_rect(4)/(2*atan2d(p.screen_height/2,p.viewing_distance));
+[xc, yc] = RectCenter(p.scr_rect);
+p.center = [xc yc];
+p.screen_height_px = RectHeight(p.scr_rect);
+
+p.ppd = p.screen_height_px / (2*atan2d(p.screen_height_cm/2, p.viewing_distance_cm));
 
 
 p.aperture_rect = CenterRectOnPoint([0 0 2 2]*p.ppd*p.aperture_size,p.center(1),p.center(2));
 p.fix_rect_out  = CenterRectOnPoint([0 0 2 2] * p.ppd  * p.fix_size_out,p.center(1),p.center(2));
 p.fix_rect_in   = CenterRectOnPoint([0 0 2 2] * p.ppd  * p.fix_size_in, p.center(1),p.center(2));
-
-p.screen_width = p.scr_rect(3); % Screen width in pixels
-p.screen_height = p.scr_rect(4); % Screen height in pixels
-p.longest_side = p.screen_height; % The height of the monitor as the longest side
-p.diameter_length = (p.screen_height + p.screen_height*0.618)/2;
+p.screen_width_px  = RectWidth(p.scr_rect);
+p.screen_height_px = RectHeight(p.scr_rect);
 
 % Set aperture size based on the screen height
-aperture_diameter = p.diameter_length; % For the circle
-aperture_wide_rect = [0 0 p.screen_height * 0.618 p.screen_height];
-aperture_tall_rect = [0 0 p.screen_height p.screen_height * 0.618];
-aperture_square = [0 0 p.diameter_length p.diameter_length];
+phi = 0.618; % the golden ratio for rectangle;
+H = p.screen_height_px;  % window height in pixels
+aperture_diameter = ((1+phi) * p.aperture_size) * p.ppd;
 
+% Define pixel rects (keep same “phi” shape logic, but now scaled in visual angle)
+aperture_circle_px    = [0 0 aperture_diameter aperture_diameter];
+aperture_square_px    = aperture_circle_px;
+aperture_wide_rect_px = [0 0 H*phi H];
+aperture_tall_rect_px = [0 0 H H*phi];
 
 % Center the apertures
-p.aperture_circle = CenterRectOnPoint([0 0 aperture_diameter aperture_diameter], p.center(1), p.center(2));
-p.aperture_wide_rect = CenterRectOnPoint(aperture_wide_rect, p.center(1), p.center(2));
-p.aperture_tall_rect = CenterRectOnPoint(aperture_tall_rect, p.center(1), p.center(2));
-p.aperture_square = CenterRectOnPoint(aperture_square, p.center(1), p.center(2));
+p.aperture_circle    = CenterRectOnPoint(aperture_circle_px(1:4),    p.center(1), p.center(2));
+p.aperture_square    = CenterRectOnPoint(aperture_square_px(1:4),    p.center(1), p.center(2));
+p.aperture_wide_rect = CenterRectOnPoint(aperture_wide_rect_px(1:4), p.center(1), p.center(2));
+p.aperture_tall_rect = CenterRectOnPoint(aperture_tall_rect_px(1:4), p.center(1), p.center(2));
 
 
 
@@ -237,17 +245,19 @@ if p.do_et == 1
     
     el.msgfontcolour=p.fix_color(1);
     p.foregroundcolour=p.fix_color(1);
-    
-    EyelinkUpdateDefaults(el);
 
-    
+
+    EyelinkUpdateDefaults(el);
     Eyelink('Initialize','PsychEyelinkDispatchCallback') % initialises the eyetracker
-   
     Eyelink('command','calibration_type=HV13'); % updating number of callibration dots
-    s=Eyelink('command','link_sample_data = LEFT,RIGHT,GAZE,AREA');% (,GAZERES,HREF,PUPIL,STATUS,INPUT');
-    s=Eyelink('command', 'sample_rate = 1000');
-    s=Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, p.scr_rect(3)-1,p.scr_rect(4)-1);
-    s=Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, p.scr_rect(3)-1,p.scr_rect(4)-1);
+    Eyelink('command','link_sample_data = LEFT,RIGHT,GAZE,AREA');% (,GAZERES,HREF,PUPIL,STATUS,INPUT');
+    Eyelink('command', 'sample_rate = 1000');
+    Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, p.scr_rect(3)-1,p.scr_rect(4)-1);
+    Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, p.scr_rect(3)-1,p.scr_rect(4)-1);
+    % s=Eyelink('command','link_sample_data = LEFT,RIGHT,GAZE,AREA');% (,GAZERES,HREF,PUPIL,STATUS,INPUT');
+    % s=Eyelink('command', 'sample_rate = 1000');
+    % s=Eyelink('command','screen_pixel_coords = %ld %ld %ld %ld', 0, 0, p.scr_rect(3)-1,p.scr_rect(4)-1);
+    % s=Eyelink('message', 'DISPLAY_COORDS %ld %ld %ld %ld', 0, 0, p.scr_rect(3)-1,p.scr_rect(4)-1);
     
     
     
@@ -277,11 +287,34 @@ if p.do_et == 1
     
     %------ calibrate the eye tracker --------
     EyelinkDoTrackerSetup(el);
-    if s~=0
-        error('link_sample_data error, status: ',s)
-    end
     Eyelink('openfile',p.eyedatafile);
-
+    % --- After calibration/setup, clean keyboard state ---
+    KbReleaseWait;         % wait until all keys are released
+    WaitSecs(0.2);         % small debounce
+    
+    % --- Show "press SPACE to start" screen ---
+    Screen('FillRect', w, [0 0 0]);
+    DrawFormattedText(w, 'Calibration complete.\n\nPress SPACE to start.\n\n(ESC to abort)', ...
+        'center', 'center', p.fix_color);
+    Screen('Flip', w);
+    
+    % --- Wait for SPACE (ESC aborts) ---
+    while true
+        [keyIsDown, ~, keyCode] = KbCheck;
+        if keyIsDown
+            if keyCode(p.space)
+                break
+            elseif keyCode(p.esc_key)
+                Screen('CloseAll'); ShowCursor;
+                Eyelink('ShutDown');
+                return
+            end
+        end
+        WaitSecs(0.01);
+    end
+    
+    KbReleaseWait;
+    WaitSecs(0.2);
 end
 
 
@@ -346,7 +379,20 @@ for tt = 1:p.ntrials
     current_shape = randomized_conditions{tt, 1}; % Get the current shape
     current_degree = randomized_conditions{tt, 2}; % Get the current degree
     %disp(['Shape: ', current_shape, ', Degree: ', num2str(current_degree)]);
-    
+%     if isfield(p,'debug') && p.debug
+%         % Identify which aperture field is used
+%         switch current_shape
+%             case 'circle',    apField = 'p.aperture_circle';
+%             case 'square',    apField = 'p.aperture_square';
+%             case 'wide_rect', apField = 'p.aperture_wide_rect';
+%             case 'tall_rect', apField = 'p.aperture_tall_rect';
+%             otherwise,        apField = 'UNKNOWN';
+%         end
+%     
+%         % Print once per trial
+%         disp(sprintf('DEBUG T%02d | shape=%s | angle=%.2f | %s', ...
+%             tt, current_shape, current_degree, apField));
+%     end
 
     % this trial's position(s)
     this_ang = nan(1);
@@ -498,7 +544,6 @@ for tt = 1:p.ntrials
 
     % Mouse response period (XDAT 4) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if p.response_mode == 1
-    
         if p.do_et == 1
             Eyelink('Message','xDAT %i',4);
         end
@@ -591,7 +636,7 @@ for tt = 1:p.ntrials
                     Screen('DrawDots', w, [x; y], 10, [255 0 0], [], 2);  % red dot
                 
                     Screen('Flip', w);  % Show feedback frame
-                    WaitSecs(0.5);      % Brief pause to let participant see feedback
+                    WaitSecs(0.3);      % Brief pause to let participant see feedback
                 end
     
                 % optional escape check

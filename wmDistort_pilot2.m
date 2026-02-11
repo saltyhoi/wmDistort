@@ -13,19 +13,12 @@ default_input = {'sub777', '1', '1', '0'};  % Default: no eye tracker, mouse res
 % Get user input via dialog box
 user_input = inputdlg(prompt, dlg_title, num_lines, default_input);
 
-<<<<<<< HEAD
 p.debug = false;
 p.expt_name = 'wmDistort_pilot2';
 p.subj = strtrim(user_input{1}); % Subject number
 p.run = str2double(strtrim(user_input{2}));  % Run number  , convert to double 
 p.do_et = str2double(strtrim(user_input{3}));   % Eye tracker condition (0 or 1)
 p.display = str2double(user_input{4});
-=======
-% Extract the inputs from the user input dialog
-subj = strtrim(user_input{1});       % Subject number
-run  = str2double(strtrim(user_input{2}));  % Run number  , convert to double
-et   = str2double(strtrim(user_input{3}));   % Eye tracker condition (0 or 1)
->>>>>>> 22d847bd9d0cf9b7bac8277e3a605526cf9e33bc
 
 % Check if eye tracker condition is valid
 if p.do_et ~= 0 && p.do_et ~= 1
@@ -689,11 +682,7 @@ Screen('Flip',w);
 
 resp = 0;
 while resp == 0
-<<<<<<< HEAD
     [resp, ~] = checkForResp(p.space, p.esc_key);
-=======
-    [resp, timeStamp] = checkForResp(p.space, p.esc_key);
->>>>>>> 22d847bd9d0cf9b7bac8277e3a605526cf9e33bc
 end
 clear resp;
 
