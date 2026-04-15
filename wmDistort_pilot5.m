@@ -9,7 +9,7 @@ prompt = {'Enter Subject Number (e.g., sub001):';
     'Display Mode (0 = Behavioral room, 1 = fMRI room):'};
 dlg_title = 'Subject & Run Info Input';
 num_lines = 1; 
-default_input = {'sub999', '1', '0', '1', '0'};  % Default: no eye tracker, mouse response, behavioral room
+default_input = {'sub000', '1', '1', '1', '0'};  % Default: no eye tracker, mouse response, behavioral room
 
 
 % Get user input via dialog box
@@ -45,7 +45,7 @@ p.rng_seed = cputime*1000;
 rng(p.rng_seed);
 
 % ------ size of relevant stim features, etc ------ %
-p.wm_ecc = 8;     % deg [in behavioral room, max ecc of circle 15 deg]
+p.wm_ecc = 6.5;     % deg [in behavioral room, max ecc of circle 15 deg]
 p.cue_size = 0.55; % deg
 p.wm_size = 0.65;  % deg, size of WM dots
 p.sep_ang = 30;    % deg polar angle, maximum stim separation distance
