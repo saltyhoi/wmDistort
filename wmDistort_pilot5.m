@@ -9,7 +9,7 @@ prompt = {'Enter Subject Number (e.g., sub001):';
     'Display Mode (0 = Behavioral room, 1 = fMRI room):'};
 dlg_title = 'Subject & Run Info Input';
 num_lines = 1; 
-default_input = {'sub000', '1', '1', '1', '0'};  % Default: no eye tracker, mouse response, behavioral room
+default_input = {'sub054', '1', '1', '1', '0'};  % Default: no eye tracker, mouse response, behavioral room
 
 
 % Get user input via dialog box
@@ -159,7 +159,14 @@ p.conditions = cell2mat(randomized_conditions(:, 3));
 p.aperture_dur = 2;
 p.targ_dur = 0.5;
 p.delay_dur = 2.5;
-p.cue_dur = 3; % a bit longer than usual 0.8
+
+if p.response_mode == 0
+    p.cue_dur = 0.8;
+elseif p.response_mode == 1
+    p.cue_dur = 3;
+end
+
+% p.cue_dur = 3; % a bit longer than usual 0.8
 p.feedback_dur = 0.8; 
 p.iti_range = [2 4]; % randomly choose between those
 
